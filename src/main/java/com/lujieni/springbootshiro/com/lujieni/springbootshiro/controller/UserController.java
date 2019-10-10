@@ -49,7 +49,7 @@ public class UserController {
         /*
             使用shiro编写认证操作
          */
-        //获取subject
+        //获取subject12322
         Subject currentUser = SecurityUtils.getSubject();
         //判断用户是否登录过
         if(!currentUser.isAuthenticated()){
