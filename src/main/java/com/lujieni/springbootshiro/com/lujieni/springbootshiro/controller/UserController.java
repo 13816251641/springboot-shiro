@@ -48,6 +48,7 @@ public class UserController {
     public String login(String name , String password, Model model){
         /*
             使用shiro编写认证操作
+            来自dev分支的问候
          */
         //获取subject12322v1.0
         Subject currentUser = SecurityUtils.getSubject();
