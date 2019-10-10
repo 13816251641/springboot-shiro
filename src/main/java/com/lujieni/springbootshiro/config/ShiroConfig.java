@@ -29,6 +29,7 @@ public class ShiroConfig {
                     perms:该资源必须得到资源权限才可以访问
                     role:该资源必须得到角色权限才可以访问
                     来自dev的问候
+                    master自己加的
          */
         Map<String,String> filterMap = new LinkedHashMap<>();
         //filterMap.put("/add","authc");
