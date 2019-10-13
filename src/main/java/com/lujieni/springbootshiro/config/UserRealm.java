@@ -9,6 +9,7 @@ import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -55,21 +56,20 @@ public class UserRealm extends AuthorizingRealm {
         UsernamePasswordToken token = (UsernamePasswordToken)arg;
         User user = userMapper.findUserByUsername(token.getUsername());
         if(null == user) {
-            /*
-               用户名不存在shiro底层会抛出UnknownAccountExcepetion
-             */
+            /* 用户名不存在抛出UnknownAccountExcepetion */
             throw new UnknownAccountException();
         }
         /*
-            有了SimpleAuthenticationInfo就不需要我们自己去判断密码了
-            else  if(!user.getPassword().equals(new String(token.getPassword()))){
-            throw new IncorrectCredentialsException();
-        }*/
-        /*
             利用SimpleAuthenticationInfo可以实现让shiro自动帮我们判断密码
             第一个参数可以放置用户对象信息,同时可以通过securityutis.getsubject().getprincipal();取出
-            第二个参数个人认为是在数据库中这个用户的真实密码,交给SimpleAuthenticationInfo来和用户输入的作比较
+            第二个参数是在数据库中这个用户的真实密码,交给SimpleAuthenticationInfo来和用户输入的作比较
          */
-        return new SimpleAuthenticationInfo(user,user.getPassword(),"");
+        /* 盐值,登录时用户输入的用户名 */
+        ByteSource credentialsSalt = ByteSource.Util.bytes(token.getUsername());
+        /*
+           MD5加密是可不逆的,所以这里的比较是将用户前端输入的密码进行MD5加密并加盐之后
+           和数据库中存储的进行比较
+         */
+        return new SimpleAuthenticationInfo(user,user.getPassword(),credentialsSalt,"");
     }
 }

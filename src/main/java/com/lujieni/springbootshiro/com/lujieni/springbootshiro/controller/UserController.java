@@ -3,12 +3,10 @@ package com.lujieni.springbootshiro.com.lujieni.springbootshiro.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.IncorrectCredentialsException;
 import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.subject.Subject;
-import org.slf4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,10 +44,7 @@ public class UserController {
 
     @RequestMapping("/login")
     public String login(String name , String password, Model model){
-        /*
-            使用shiro编写认证操作
-            来自dev分支的问候
-         */
+        /* 使用shiro编写认证操作来自dev分支的问候 */
         //获取subject12322v1.0
         Subject currentUser = SecurityUtils.getSubject();
         //判断用户是否登录过
