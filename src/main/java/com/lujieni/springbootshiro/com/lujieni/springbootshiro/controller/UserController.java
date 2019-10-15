@@ -3,6 +3,7 @@ package com.lujieni.springbootshiro.com.lujieni.springbootshiro.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.IncorrectCredentialsException;
 import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
@@ -62,6 +63,9 @@ public class UserController {
                 return "login";
             }catch (IncorrectCredentialsException e){
                 model.addAttribute("msg","密码错误");
+                return "login";
+            }catch (AuthenticationException e) {
+                model.addAttribute("msg",e.getMessage());
                 return "login";
             }
         }

@@ -1,13 +1,20 @@
 package com.lujieni.springbootshiro.config;
 
 import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
+import org.apache.shiro.authc.pam.AllSuccessfulStrategy;
+import org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy;
+import org.apache.shiro.authc.pam.FirstSuccessfulStrategy;
+import org.apache.shiro.authc.pam.ModularRealmAuthenticator;
+import org.apache.shiro.realm.Realm;
 import org.apache.shiro.spring.LifecycleBeanPostProcessor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -54,10 +61,17 @@ public class ShiroConfig {
      * 创建DefaultWebSecurityManager
      */
     @Bean
-    public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm){
+    public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm,SecondRealm secondRealm){
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
-        //关联relam
-        securityManager.setRealm(userRealm);
+        ModularRealmAuthenticator modularRealmAuthenticator = new ModularRealmAuthenticator();
+        modularRealmAuthenticator.setAuthenticationStrategy(new AtLeastOneSuccessfulStrategy());
+        securityManager.setAuthenticator(modularRealmAuthenticator);
+        /* 关联单relam */
+        //securityManager.setRealm(userRealm);
+        List<Realm> list = new ArrayList<>();
+        list.add(userRealm);
+        list.add(secondRealm);
+        securityManager.setRealms(list);
         return securityManager;
     }
 
@@ -71,6 +85,18 @@ public class ShiroConfig {
         userRealm.setCredentialsMatcher(hashedCredentialsMatcher);
         return userRealm;
     }
+
+    /**
+     * 创建Realm
+     */
+    @Bean
+    public SecondRealm getSecondRealm(HashedCredentialsMatcher hashedCredentialsMatcher){
+        SecondRealm secondRealm = new SecondRealm();
+        secondRealm.setAuthorizationCachingEnabled(false);
+        secondRealm.setCredentialsMatcher(hashedCredentialsMatcher);
+        return secondRealm;
+    }
+
 
     /**
      * 密码校验规则HashedCredentialsMatcher
