@@ -2,6 +2,7 @@ package com.lujieni.springbootshiro.config;
 
 import com.lujieni.springbootshiro.entity.User;
 import com.lujieni.springbootshiro.mapper.UserMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -12,33 +13,39 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.HashSet;
+import java.util.Set;
+
 
 /**
  * 自定义Realm程序
  */
+@Slf4j
 public class UserRealm extends AuthorizingRealm {
 
     @Autowired
     private UserMapper userMapper;
 
     /**
-     * 执行授权逻辑
+     * 执行授权逻辑  多realm下只要有一个授权通过就算通过和认证策略没有什么关系
      * @param principals
      * @return
      */
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
-        System.out.println("执行授权逻辑");
+        log.info("UserRealm:执行授权逻辑");
         //给资源进行授权
         SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
         //添加资源的授权字符串
-        //info.addStringPermission("user:add");
 
         //到数据库查询当前登录用户的授权字符串
         //获取当前登录用户
         Subject subject = SecurityUtils.getSubject();
         User user = (User)subject.getPrincipal();
-        info.addStringPermission(user.getPerms());
+        //info.addStringPermission(user.getPerms());
+        Set<String> roles = new HashSet<>();
+        roles.add(user.getRole());
+        info.setRoles(roles);
         return info;
     }
 
@@ -50,7 +57,7 @@ public class UserRealm extends AuthorizingRealm {
      */
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken arg) throws AuthenticationException {
-        System.out.println("执行认证逻辑");
+        log.info("UserRealm:执行认证逻辑");
         //编写shiro判断逻辑,判断用户名和密码
         //1.判断用户名
         UsernamePasswordToken token = (UsernamePasswordToken)arg;

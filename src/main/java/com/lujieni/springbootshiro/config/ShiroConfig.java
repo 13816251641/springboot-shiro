@@ -6,9 +6,10 @@ import org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy;
 import org.apache.shiro.authc.pam.FirstSuccessfulStrategy;
 import org.apache.shiro.authc.pam.ModularRealmAuthenticator;
 import org.apache.shiro.realm.Realm;
-import org.apache.shiro.spring.LifecycleBeanPostProcessor;
+import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,6 +20,31 @@ import java.util.Map;
 
 @Configuration
 public class ShiroConfig {
+
+    /**
+     * 权限注解配置
+     * @param defaultWebSecurityManager
+     * @return
+     */
+    @Bean
+    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(DefaultWebSecurityManager defaultWebSecurityManager) {
+        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor =new AuthorizationAttributeSourceAdvisor();
+        authorizationAttributeSourceAdvisor.setSecurityManager(defaultWebSecurityManager);
+        return authorizationAttributeSourceAdvisor;
+    }
+
+    /**
+     * 权限注解配置
+     * @return
+     */
+    @Bean
+    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator(){
+        DefaultAdvisorAutoProxyCreator app = new DefaultAdvisorAutoProxyCreator();
+        app.setProxyTargetClass(true);
+        return app;
+    }
+
+
     /**
      * 创建ShiroFilterFactoryBean
      */
@@ -39,10 +65,15 @@ public class ShiroConfig {
                     master自己加的
          */
         Map<String,String> filterMap = new LinkedHashMap<>();
-        //filterMap.put("/add","authc");
-        //filterMap.put("/update","authc");
-        filterMap.put("/add","perms[user:add]");
-        filterMap.put("/update","perms[user:update]");
+        /*
+           因为add,update设置了roles权限,所以无需authc,默认需要authc
+           filterMap.put("/add","authc");
+           filterMap.put("/update","authc");
+           filterMap.put("/add","roles[user:add]");
+           filterMap.put("/update","perms[user:update]");
+         */
+        filterMap.put("/add","roles[jeecg]");
+        filterMap.put("/update","roles[admin]");
         filterMap.put("/testThymeleaf","anon");
         filterMap.put("/login","anon");
         filterMap.put("/toLogin","anon");
@@ -66,7 +97,7 @@ public class ShiroConfig {
         ModularRealmAuthenticator modularRealmAuthenticator = new ModularRealmAuthenticator();
         modularRealmAuthenticator.setAuthenticationStrategy(new AtLeastOneSuccessfulStrategy());
         securityManager.setAuthenticator(modularRealmAuthenticator);
-        /* 关联单relam */
+        /* 关联单realm */
         //securityManager.setRealm(userRealm);
         List<Realm> list = new ArrayList<>();
         list.add(userRealm);
