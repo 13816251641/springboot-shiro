@@ -32,16 +32,17 @@ public class UserController {
        即在ShiroConfig中配置了需要登录,注解中配置无需登录,听从ShiroConfig
        中配置的,并且会转跳到ShiroConfig中配置的登录界面
      */
-    /*
+
        @RequiresAuthentication
-       需要登录才能访问 如果权限是交给ShiroConfig去判断的,
-       会跳转到setLoginUrl配置的地址,否则不会
+               /*
+       需要登录才能访问 如果ShiroConfig中也配置了这个url需要登录才能访问,
+       则还会跳转到setLoginUrl配置的地址,否则不会
      */
     /*
         @RequiresRoles(value = {"admin"})需要admin角色才能登录
         如果权限是被ShiroConfig中的配置捕获,会先跳转到登录界面的
      */
-    @RequiresGuest
+    //@RequiresGuest
     @GetMapping("/hello")
     @ResponseBody
     public String hello(){

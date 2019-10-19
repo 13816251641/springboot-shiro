@@ -41,7 +41,7 @@ public class UserRealm extends AuthorizingRealm {
         //到数据库查询当前登录用户的授权字符串
         //获取当前登录用户
         Subject subject = SecurityUtils.getSubject();
-        User user = (User)subject.getPrincipal();
+        User user = (User)(subject.getPrincipal());
         //info.addStringPermission(user.getPerms());
         Set<String> roles = new HashSet<>();
         roles.add(user.getRole());

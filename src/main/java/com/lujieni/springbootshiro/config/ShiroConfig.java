@@ -1,5 +1,7 @@
 package com.lujieni.springbootshiro.config;
 
+import com.lujieni.springbootshiro.entity.SysPermissionInit;
+import com.lujieni.springbootshiro.mapper.SysPermissionInitMapper;
 import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
 import org.apache.shiro.authc.pam.AllSuccessfulStrategy;
 import org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy;
@@ -10,6 +12,7 @@ import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSource
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,6 +23,8 @@ import java.util.Map;
 
 @Configuration
 public class ShiroConfig {
+    @Autowired
+    private SysPermissionInitMapper sysPermissionInitMapper;
 
     /**
      * 权限注解配置
@@ -66,21 +71,27 @@ public class ShiroConfig {
          */
         Map<String,String> filterMap = new LinkedHashMap<>();
         /*
-           因为add,update设置了roles权限,所以无需authc,默认需要authc
+           因为add,update设置了roles权限,所以无需authc,默认就是需要authc
            filterMap.put("/add","authc");
            filterMap.put("/update","authc");
            filterMap.put("/add","roles[user:add]");
            filterMap.put("/update","perms[user:update]");
          */
-        filterMap.put("/add","roles[jeecg]");
+
+      /*  filterMap.put("/add","roles[jeecg]");
         filterMap.put("/update","roles[admin]");
         filterMap.put("/testThymeleaf","anon");
         filterMap.put("/login","anon");
-        filterMap.put("/toLogin","anon");
+        filterMap.put("/toLogin","anon");*/
+
+        List<SysPermissionInit> list = sysPermissionInitMapper.getAll();
+        list.forEach(e->filterMap.put(e.getUrl(),e.getPermissionInit()));
+
+
         //主要这行代码必须放在所有权限设置的最后，不然会导致所有 url 都被拦截
         filterMap.put("/**", "authc");
         shiroFilterFactoryBean.setFilterChainDefinitionMap(filterMap);
-        //修改登录界面的地址
+        //如果不设置默认会自动寻找Web工程根目录下的"/login.jsp"页面
         shiroFilterFactoryBean.setLoginUrl("/toLogin");
         //修改没有授权地址
         shiroFilterFactoryBean.setUnauthorizedUrl("/noAuth");
@@ -94,6 +105,7 @@ public class ShiroConfig {
     @Bean
     public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm,SecondRealm secondRealm){
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+        /* 设置多realm下的认证策略 */
         ModularRealmAuthenticator modularRealmAuthenticator = new ModularRealmAuthenticator();
         modularRealmAuthenticator.setAuthenticationStrategy(new AtLeastOneSuccessfulStrategy());
         securityManager.setAuthenticator(modularRealmAuthenticator);
