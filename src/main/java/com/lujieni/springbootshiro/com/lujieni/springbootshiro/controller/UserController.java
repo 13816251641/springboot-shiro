@@ -1,6 +1,7 @@
 package com.lujieni.springbootshiro.com.lujieni.springbootshiro.controller;
 
 
+import com.lujieni.springbootshiro.config.ShiroService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
@@ -11,10 +12,12 @@ import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresGuest;
 import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.apache.shiro.subject.Subject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.HashMap;
@@ -26,6 +29,9 @@ import java.util.Map;
 public class UserController {
 
     private static final String LOGIN="login";
+
+    @Autowired
+    private ShiroService shiroService;
 
     /* @RequiresGuest
        游客即可登录 在ShiroConfig中的权限配置 > 注解申明的权限配置,
@@ -103,6 +109,13 @@ public class UserController {
         }
         log.info("已登录");
         return "redirect:/testThymeleaf";
+    }
+
+    @GetMapping("/refresh")
+    @ResponseBody
+    public String  refresh(){
+        shiroService.updatePermission();
+        return "success";
     }
 }
 

@@ -11,8 +11,13 @@ import org.apache.shiro.realm.Realm;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
+import org.crazycake.shiro.RedisCacheManager;
+import org.crazycake.shiro.RedisManager;
+import org.crazycake.shiro.RedisSessionDAO;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,28 +31,97 @@ public class ShiroConfig {
     @Autowired
     private SysPermissionInitMapper sysPermissionInitMapper;
 
+    @Value("${spring.redis.hostName}")
+    private String redisHostName;
+
+
+    @Value("${spring.redis.password}")
+    private String redisPassword;
+
+    @Value("${spring.redis.timeout}")
+    private int redisTimeout;
+
+
     /**
-     * 权限注解配置
-     * @param defaultWebSecurityManager
+     * 配置shiro redisManager,大家公用的
+     *
      * @return
      */
     @Bean
-    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(DefaultWebSecurityManager defaultWebSecurityManager) {
-        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor =new AuthorizationAttributeSourceAdvisor();
-        authorizationAttributeSourceAdvisor.setSecurityManager(defaultWebSecurityManager);
-        return authorizationAttributeSourceAdvisor;
+    public RedisManager redisManager() {
+        RedisManager redisManager = new RedisManager();
+        redisManager.setHost(redisHostName);
+        redisManager.setPassword(redisPassword);
+        /*配置过期时间*/
+        redisManager.setTimeout(redisTimeout);
+        return redisManager;
     }
 
     /**
-     * 权限注解配置
+     * cacheManager 缓存 redis实现 这个cacheManager的功能我很闷逼
+     *
      * @return
      */
     @Bean
-    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator(){
-        DefaultAdvisorAutoProxyCreator app = new DefaultAdvisorAutoProxyCreator();
-        app.setProxyTargetClass(true);
-        return app;
+    public RedisCacheManager cacheManager() {
+        RedisCacheManager redisCacheManager = new RedisCacheManager();
+        redisCacheManager.setRedisManager(redisManager());
+        redisCacheManager.setKeyPrefix("cacheManager:");
+        return redisCacheManager;
     }
+
+    /**
+     * RedisSessionDAO shiro sessionDao层的实现 通过redis
+     * 发现实际在redis中命名空间用的是这个
+     */
+    @Bean
+    public RedisSessionDAO redisSessionDAO() {
+        RedisSessionDAO redisSessionDAO = new RedisSessionDAO();
+        redisSessionDAO.setRedisManager(redisManager());
+        redisSessionDAO.setKeyPrefix("redisSessionDAO:");
+        return redisSessionDAO;
+    }
+
+    /**
+     * shiro session的管理
+     * SessionManager注入sessionDAO，实现Session的CRUD
+     */
+    @Bean
+    public DefaultWebSessionManager sessionManager() {
+        DefaultWebSessionManager sessionManager = new DefaultWebSessionManager();
+        sessionManager.setSessionDAO(redisSessionDAO());
+        return sessionManager;
+    }
+
+    /**
+     * 创建DefaultWebSecurityManager
+     */
+    @Bean
+    public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm,SecondRealm secondRealm){
+        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+        /* 设置多realm下的认证策略 */
+        ModularRealmAuthenticator modularRealmAuthenticator = new ModularRealmAuthenticator();
+        modularRealmAuthenticator.setAuthenticationStrategy(new AtLeastOneSuccessfulStrategy());
+        securityManager.setAuthenticator(modularRealmAuthenticator);
+        /* 关联单realm */
+        //securityManager.setRealm(userRealm);
+        List<Realm> list = new ArrayList<>();
+        list.add(userRealm);
+        list.add(secondRealm);
+        securityManager.setRealms(list);
+
+        /*自定义session管理 使用redis */
+        securityManager.setSessionManager(sessionManager());
+        /*
+           自定义缓存实现,使用redis,当配置了该cacheManager且对应realm的
+           setAuthorizationCachingEnabled为true时可以缓存授权对应realm
+           的授权信息放入redis中,效果是对应realm的doGetAuthorizationInfo
+           的代码并不是每次都会执行了,只会第一次执行
+        */
+        securityManager.setCacheManager(cacheManager());
+        return securityManager;
+    }
+
 
 
     /**
@@ -78,15 +152,17 @@ public class ShiroConfig {
            filterMap.put("/update","perms[user:update]");
          */
 
-      /*  filterMap.put("/add","roles[jeecg]");
+      /*
+        代码中配置权限
+        filterMap.put("/add","roles[jeecg]");
         filterMap.put("/update","roles[admin]");
         filterMap.put("/testThymeleaf","anon");
         filterMap.put("/login","anon");
-        filterMap.put("/toLogin","anon");*/
+        filterMap.put("/toLogin","anon");
+        */
 
         List<SysPermissionInit> list = sysPermissionInitMapper.getAll();
         list.forEach(e->filterMap.put(e.getUrl(),e.getPermissionInit()));
-
 
         //主要这行代码必须放在所有权限设置的最后，不然会导致所有 url 都被拦截
         filterMap.put("/**", "authc");
@@ -100,23 +176,28 @@ public class ShiroConfig {
 
 
     /**
-     * 创建DefaultWebSecurityManager
+     * 权限注解配置
+     * @param defaultWebSecurityManager
+     * @return
      */
     @Bean
-    public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm,SecondRealm secondRealm){
-        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
-        /* 设置多realm下的认证策略 */
-        ModularRealmAuthenticator modularRealmAuthenticator = new ModularRealmAuthenticator();
-        modularRealmAuthenticator.setAuthenticationStrategy(new AtLeastOneSuccessfulStrategy());
-        securityManager.setAuthenticator(modularRealmAuthenticator);
-        /* 关联单realm */
-        //securityManager.setRealm(userRealm);
-        List<Realm> list = new ArrayList<>();
-        list.add(userRealm);
-        list.add(secondRealm);
-        securityManager.setRealms(list);
-        return securityManager;
+    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(DefaultWebSecurityManager defaultWebSecurityManager) {
+        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor =new AuthorizationAttributeSourceAdvisor();
+        authorizationAttributeSourceAdvisor.setSecurityManager(defaultWebSecurityManager);
+        return authorizationAttributeSourceAdvisor;
     }
+
+    /**
+     * 权限注解配置
+     * @return
+     */
+    @Bean
+    public DefaultAdvisorAutoProxyCreator defaultAdvisorAutoProxyCreator(){
+        DefaultAdvisorAutoProxyCreator app = new DefaultAdvisorAutoProxyCreator();
+        app.setProxyTargetClass(true);
+        return app;
+    }
+
 
     /**
      * 创建Realm
@@ -124,7 +205,13 @@ public class ShiroConfig {
     @Bean
     public UserRealm getUserRealm(HashedCredentialsMatcher hashedCredentialsMatcher){
         UserRealm userRealm = new UserRealm();
-        userRealm.setAuthorizationCachingEnabled(false);
+        /*
+          启用授权缓存，即缓存AuthorizationInfo信息，默认false,
+          当设置为true且配置了setCacheManager后即可缓存授权逻辑,
+          将信息存入redis中,效果是不用每次都执行doGetAuthorizationInfo
+          方法,只会第一次执行
+        */
+        userRealm.setAuthorizationCachingEnabled(true);
         userRealm.setCredentialsMatcher(hashedCredentialsMatcher);
         return userRealm;
     }
@@ -135,7 +222,13 @@ public class ShiroConfig {
     @Bean
     public SecondRealm getSecondRealm(HashedCredentialsMatcher hashedCredentialsMatcher){
         SecondRealm secondRealm = new SecondRealm();
-        secondRealm.setAuthorizationCachingEnabled(false);
+        /*
+          启用授权缓存，即缓存AuthorizationInfo信息，默认false,
+          当设置为true且配置了setCacheManager后即可缓存授权逻辑,
+          将信息存入redis中,效果是不用每次都执行doGetAuthorizationInfo
+          方法,只会第一次执行
+        */
+        secondRealm.setAuthorizationCachingEnabled(true);
         secondRealm.setCredentialsMatcher(hashedCredentialsMatcher);
         return secondRealm;
     }

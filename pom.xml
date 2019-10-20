@@ -19,6 +19,13 @@
     </properties>
 
     <dependencies>
+        <!-- shiro+redis缓存插件 -->
+        <dependency>
+            <groupId>org.crazycake</groupId>
+            <artifactId>shiro-redis</artifactId>
+            <version>3.2.3</version>
+        </dependency>
+
         <!--连接池-->
         <dependency>
             <groupId>com.alibaba</groupId>

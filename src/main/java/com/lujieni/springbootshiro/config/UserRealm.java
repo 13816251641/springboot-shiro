@@ -35,18 +35,15 @@ public class UserRealm extends AuthorizingRealm {
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
         log.info("UserRealm:执行授权逻辑");
         //给资源进行授权
-        SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
-        //添加资源的授权字符串
-
-        //到数据库查询当前登录用户的授权字符串
-        //获取当前登录用户
+        SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
+        /*添加资源的授权字符串,获取当前登录用户*/
         Subject subject = SecurityUtils.getSubject();
         User user = (User)(subject.getPrincipal());
-        //info.addStringPermission(user.getPerms());
+        //simpleAuthorizationInfo.addStringPermission(user.getPerms());
         Set<String> roles = new HashSet<>();
         roles.add(user.getRole());
-        info.setRoles(roles);
-        return info;
+        simpleAuthorizationInfo.setRoles(roles);
+        return simpleAuthorizationInfo;
     }
 
     /**
