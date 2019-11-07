@@ -34,11 +34,11 @@ public class UserRealm extends AuthorizingRealm {
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
         log.info("UserRealm:执行授权逻辑");
-        //给资源进行授权
+        /*给资源进行授权*/
         SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
         /*添加资源的授权字符串,获取当前登录用户*/
         Subject subject = SecurityUtils.getSubject();
-        User user = (User)(subject.getPrincipal());
+        User user = (User)subject.getPrincipal();
         //simpleAuthorizationInfo.addStringPermission(user.getPerms());
         Set<String> roles = new HashSet<>();
         roles.add(user.getRole());
@@ -68,12 +68,18 @@ public class UserRealm extends AuthorizingRealm {
             第一个参数可以放置用户对象信息,同时可以通过securityutis.getsubject().getprincipal();取出
             第二个参数是在数据库中这个用户的真实密码,交给SimpleAuthenticationInfo来和用户输入的作比较
          */
-        /* 盐值,登录时用户输入的用户名 */
+        /* 盐值,登录时用户输入的用户名,盐值的意义是让相同密码经过md5加密后的值不同 */
         ByteSource credentialsSalt = ByteSource.Util.bytes(token.getUsername());
         /*
            MD5加密是可不逆的,所以这里的比较是将用户前端输入的密码进行MD5加密并加盐之后
            和数据库中存储的进行比较
          */
         return new SimpleAuthenticationInfo(user,user.getPassword(),credentialsSalt,"");
+
+        /*
+            直接进行比较,前提是数据库中存的是密码的原始值
+            new SimpleAuthenticationInfo(user,user.getPassword(),null);
+        */
+
     }
 }

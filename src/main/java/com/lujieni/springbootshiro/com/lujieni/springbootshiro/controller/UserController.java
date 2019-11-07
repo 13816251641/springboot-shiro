@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import javax.websocket.Session;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,8 +42,8 @@ public class UserController {
        中配置的,并且会转跳到ShiroConfig中配置的登录界面
      */
 
+    /*
        @RequiresAuthentication
-               /*
        需要登录才能访问 如果ShiroConfig中也配置了这个url需要登录才能访问,
        则还会跳转到setLoginUrl配置的地址,否则不会
      */
@@ -48,10 +51,16 @@ public class UserController {
         @RequiresRoles(value = {"admin"})需要admin角色才能登录
         如果权限是被ShiroConfig中的配置捕获,会先跳转到登录界面的
      */
-    //@RequiresGuest
     @GetMapping("/hello")
     @ResponseBody
-    public String hello(){
+    public String hello(HttpServletRequest request){
+        /*这里的实现类是ShiroHttpSession*/
+        HttpSession session = request.getSession();
+        if(session.getAttribute("age") == null){
+            session.setAttribute("age","28");
+        }else{
+            shiroService.getInfoFromSession();
+        }
         return "hello";
     }
 
@@ -78,6 +87,13 @@ public class UserController {
         return "/login";
     }
 
+    @GetMapping(value="/info")
+    public String info(){
+        Subject subject = SecurityUtils.getSubject();
+        boolean authenticated = subject.isAuthenticated();
+        return "/info";
+    }
+
     @GetMapping(value="/noAuth")
     public String noAuth(){
         return "/noAuth";
@@ -93,6 +109,7 @@ public class UserController {
             UsernamePasswordToken token = new UsernamePasswordToken(name,password);
             //执行登录方法
             try {
+                token.setRememberMe(true);
                 currentUser.login(token);
                 //登录成功 重定向
                 return "redirect:/testThymeleaf";

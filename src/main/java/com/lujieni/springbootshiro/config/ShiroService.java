@@ -3,6 +3,8 @@ package com.lujieni.springbootshiro.config;
 import com.lujieni.springbootshiro.entity.SysPermissionInit;
 import com.lujieni.springbootshiro.mapper.SysPermissionInitMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.session.Session;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.filter.mgt.DefaultFilterChainManager;
 import org.apache.shiro.web.filter.mgt.PathMatchingFilterChainResolver;
@@ -23,6 +25,15 @@ public class ShiroService {
 
     @Autowired
     SysPermissionInitMapper sysPermissionInitMapper;
+
+    /**
+     * service层从session中取数据
+     */
+    public void getInfoFromSession(){
+        Session session = SecurityUtils.getSubject().getSession();
+        String age =(String) session.getAttribute("age");
+        log.info(age);
+    }
 
     /**
      * 初始化权限

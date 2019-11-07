@@ -4,13 +4,15 @@ import com.lujieni.springbootshiro.entity.User;
 import com.lujieni.springbootshiro.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.*;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.AuthenticationInfo;
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -18,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 自定义Realm程序
  */
 @Slf4j
-public class SecondRealm extends AuthorizingRealm {
+public class ThirdRealm extends AuthorizingRealm {
 
     @Autowired
     private UserMapper userMapper;
@@ -30,7 +32,7 @@ public class SecondRealm extends AuthorizingRealm {
      */
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
-        log.info("SecondRealm:执行授权逻辑");
+        log.info("ThirdRealm:执行授权逻辑");
         //给资源进行授权
         SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
         //添加资源的授权字符串
@@ -52,7 +54,7 @@ public class SecondRealm extends AuthorizingRealm {
      */
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken arg) throws AuthenticationException {
-        log.info("SecondRealm:执行认证逻辑");
-         return null;
+        log.info("ThirdRealm:执行认证逻辑");
+        return null;
     }
 }

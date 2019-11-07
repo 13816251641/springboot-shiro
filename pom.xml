@@ -25,7 +25,6 @@
             <artifactId>shiro-redis</artifactId>
             <version>3.2.3</version>
         </dependency>
-
         <!--连接池-->
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -69,6 +68,7 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!--springboot测试jar-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

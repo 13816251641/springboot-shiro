@@ -34,12 +34,11 @@ public class ShiroConfig {
     @Value("${spring.redis.hostName}")
     private String redisHostName;
 
-
     @Value("${spring.redis.password}")
     private String redisPassword;
 
     @Value("${spring.redis.timeout}")
-    private int redisTimeout;
+    private int redisTimeout;//从application.properties中读取
 
 
     /**
@@ -52,7 +51,7 @@ public class ShiroConfig {
         RedisManager redisManager = new RedisManager();
         redisManager.setHost(redisHostName);
         redisManager.setPassword(redisPassword);
-        /*配置过期时间*/
+        /*配置连接超时时间*/
         redisManager.setTimeout(redisTimeout);
         return redisManager;
     }
@@ -65,7 +64,7 @@ public class ShiroConfig {
     @Bean
     public RedisCacheManager cacheManager() {
         RedisCacheManager redisCacheManager = new RedisCacheManager();
-        redisCacheManager.setRedisManager(redisManager());
+        redisCacheManager.setRedisManager(redisManager());//会使用bean
         redisCacheManager.setKeyPrefix("cacheManager:");
         return redisCacheManager;
     }
@@ -97,7 +96,7 @@ public class ShiroConfig {
      * 创建DefaultWebSecurityManager
      */
     @Bean
-    public DefaultWebSecurityManager getDefaultWebSecurityManager(UserRealm userRealm,SecondRealm secondRealm){
+    public DefaultWebSecurityManager getDefaultWebSecurityManager(ThirdRealm thirdRealm,SecondRealm secondRealm,UserRealm userRealm){
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
         /* 设置多realm下的认证策略 */
         ModularRealmAuthenticator modularRealmAuthenticator = new ModularRealmAuthenticator();
@@ -108,6 +107,7 @@ public class ShiroConfig {
         List<Realm> list = new ArrayList<>();
         list.add(userRealm);
         list.add(secondRealm);
+        list.add(thirdRealm);
         securityManager.setRealms(list);
 
         /*自定义session管理 使用redis */
@@ -144,30 +144,25 @@ public class ShiroConfig {
                     master自己加的
          */
         Map<String,String> filterMap = new LinkedHashMap<>();
-        /*
-           因为add,update设置了roles权限,所以无需authc,默认就是需要authc
-           filterMap.put("/add","authc");
-           filterMap.put("/update","authc");
-           filterMap.put("/add","roles[user:add]");
-           filterMap.put("/update","perms[user:update]");
-         */
-
-      /*
-        代码中配置权限
-        filterMap.put("/add","roles[jeecg]");
-        filterMap.put("/update","roles[admin]");
-        filterMap.put("/testThymeleaf","anon");
-        filterMap.put("/login","anon");
-        filterMap.put("/toLogin","anon");
-        */
+       /*
+           代码中配置权限,因为add,update设置了roles权限,所以无需authc,默认就是需要authc
+           filterMap.put("/add","roles[jeecg]");
+           filterMap.put("/update","roles[admin]");
+           filterMap.put("/delete","perms[user:delete]");
+           filterMap.put("/testThymeleaf","anon");
+           filterMap.put("/login","anon");
+           主要这行代码必须放在所有权限设置的最后,不然会导致所有url都被拦截
+           filterMap.put("/**", "authc");
+       */
 
         List<SysPermissionInit> list = sysPermissionInitMapper.getAll();
         list.forEach(e->filterMap.put(e.getUrl(),e.getPermissionInit()));
 
-        //主要这行代码必须放在所有权限设置的最后，不然会导致所有 url 都被拦截
-        filterMap.put("/**", "authc");
         shiroFilterFactoryBean.setFilterChainDefinitionMap(filterMap);
-        //如果不设置默认会自动寻找Web工程根目录下的"/login.jsp"页面
+        /*
+           如果不设置默认会自动寻找Web工程根目录下的"/login.jsp"页面,
+           这个url即使不配置anon也可以被外部访问到
+         */
         shiroFilterFactoryBean.setLoginUrl("/toLogin");
         //修改没有授权地址
         shiroFilterFactoryBean.setUnauthorizedUrl("/noAuth");
@@ -176,7 +171,7 @@ public class ShiroConfig {
 
 
     /**
-     * 权限注解配置
+     * 使shiro支持注解
      * @param defaultWebSecurityManager
      * @return
      */
@@ -188,7 +183,7 @@ public class ShiroConfig {
     }
 
     /**
-     * 权限注解配置
+     * 使shiro支持注解
      * @return
      */
     @Bean
@@ -229,9 +224,32 @@ public class ShiroConfig {
           方法,只会第一次执行
         */
         secondRealm.setAuthorizationCachingEnabled(true);
+        /*设置密码比较器*/
         secondRealm.setCredentialsMatcher(hashedCredentialsMatcher);
         return secondRealm;
     }
+
+    /**
+     * 创建Realm
+     */
+    @Bean
+    public ThirdRealm getThirdRealm(HashedCredentialsMatcher hashedCredentialsMatcher){
+        ThirdRealm thirdRealm = new ThirdRealm();
+        /*
+          启用授权缓存，即缓存AuthorizationInfo信息，默认false,
+          当设置为true且配置了setCacheManager后即可缓存授权逻辑,
+          将信息存入redis中,效果是不用每次都执行doGetAuthorizationInfo
+          方法,只会第一次执行
+        */
+        thirdRealm.setAuthorizationCachingEnabled(true);
+        /*设置密码比较器*/
+        thirdRealm.setCredentialsMatcher(hashedCredentialsMatcher);
+        return thirdRealm;
+    }
+
+
+
+
 
 
     /**
